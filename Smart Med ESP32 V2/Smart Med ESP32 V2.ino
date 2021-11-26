@@ -16,7 +16,7 @@ unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
 
 bool eat = false;
-int timeOutMin = 2; //minutes
+int timeOutMin = 2; // minutes
 int noBottleStart = 0;
 const int LDR = 34;
 int status = 0; // 0=ok  1=it's time 2=forgot 3=placeBottleBack
