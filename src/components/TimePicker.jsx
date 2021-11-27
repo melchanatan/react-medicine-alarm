@@ -10,7 +10,7 @@ function TimePicker(props) {
 
   useEffect(() => {
     props.passValue(value, props.id);
-  }, [value])
+  })
 
   function timeUp() {
     if (value + increment < maxValue) setValue( prev => prev + increment);
@@ -18,8 +18,8 @@ function TimePicker(props) {
   }
 
   function timeDown() {
-    if (value - increment > 0) setValue(prev => prev - increment);
-    else setValue(maxValue - 1);
+    if (value - increment >= 0) setValue(prev => prev - increment);
+    else setValue(maxValue - increment);
   }
 
   function handleChange(event) {
@@ -31,9 +31,9 @@ function TimePicker(props) {
 
   return (
     <div className="clock__container">
-        <button className="btn clock-btn" onClick={timeUp} ><i class="fas fa-chevron-up"></i></button>
+        <button className="btn clock-btn" onClick={timeUp} ><i className="fas fa-chevron-up"></i></button>
         <input type="number" className="clock__label" min="0" max="60" onChange={handleChange} value={formatNumber(value)}/>
-        <button className="btn clock-btn" onClick={timeDown}><i class="fas fa-chevron-down"></i></button>
+        <button className="btn clock-btn" onClick={timeDown}><i className="fas fa-chevron-down"></i></button>
       </div>
   );
 }

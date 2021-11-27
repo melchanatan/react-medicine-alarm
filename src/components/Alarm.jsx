@@ -8,7 +8,7 @@ function Alarm(props) {
       <span className="alarm__label">{formatNumber(props.hour)}</span>
       <span className="clock-colon">:</span>
       <span className="alarm__label">{formatNumber(props.minute)}</span>
-      <button className="alarm-btn" onClick={ () => props.deleteAlarm(props.id)}><i class="fas fa-trash"></i></button>
+      <button className="alarm-btn" onClick={ () => props.deleteAlarm(props.id)}><i className="fas fa-trash"></i></button>
     </div>
   );
 }
