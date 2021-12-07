@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, setDoc, doc, deleteDoc, onSnapshot } from "firebase/firestore"
+import { getDatabase, ref, set, onValue, remove } from "firebase/database";
 import firebaseConfig from "../config";
 
 import React, { useState, useEffect } from "react";
@@ -7,40 +7,37 @@ import Clock from "./Clock";
 import Alarm from "./Alarm";
 
 function App() {
-  const firebaseApp = initializeApp(firebaseConfig);
-  const db = getFirestore(firebaseApp);
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
   const [alarmList, setAlarmlist] = useState([]);
   
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db,"alarms"), (snapshot) => {
+    onValue(ref(db, 'alarms'), (snapshot) => {
       const alarms = [];
       snapshot.forEach((doc) => {
-        alarms.push({ id:doc.id, minute: doc.data().minute, hour: doc.data().hour });
+        alarms.push({ id:doc.key, minute:doc.val().minute, hour:doc.val().hour});
       });
       alarms.sort((a,b) => {
         return a.id-b.id;
       });
       setAlarmlist(alarms);
-      //console.log("update");
     });
-    return () => unsubscribe();
   }, [db]);
 
   async function updateList(minute, hour) {
     try{
-      await setDoc(doc(db, "alarms" , '' + (hour*60+minute)),{
+      await set(ref(db, 'alarms/' + (hour*60+minute)), {
         hour: hour,
         minute: minute
       });
-      //console.log("Document written");
     } catch (e) {
       console.error("Error adding document: ", e);
     }
   }
 
   async function deleteAlarm(id) {
-    await deleteDoc(doc(db, "alarms" , id))
+    remove(ref(db, 'alarms/' + id));
   }
 
   return (

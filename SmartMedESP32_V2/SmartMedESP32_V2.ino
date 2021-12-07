@@ -1,16 +1,32 @@
-#include <WiFi.h>
 #include <HTTPClient.h>
-#include <time.h>
-#include <TridentTD_LineNotify.h>
-
-#define LINE_TOKEN "5mUlpwBg7cbwlg7myUcJDgkOWkleTGVQvLRFJxiiCV0"
-const char* ssid = "ff8";
-const char* password = "Tekanawww9735";
-//Your Domain name with URL path or IP address with path
 String serverName = "http://ikwmystery.atwebpages.com";
+
+// Wifi
+#include <WiFi.h>
+char* ssid = "NAV";//"ff8";
+char* password = "12345678";//"Tekanawww9735";
+
+// Time
+#include <time.h>
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 25200;
 const int   daylightOffset_sec = 0;
+
+// Line
+#include <TridentTD_LineNotify.h>
+#define LINE_TOKEN "5mUlpwBg7cbwlg7myUcJDgkOWkleTGVQvLRFJxiiCV0"
+
+// Firebase
+#include <Firebase_ESP_Client.h>
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
+#define API_KEY "AIzaSyDC06NHOw7ZXuUneZsZvUcaW4PkfOMsNWc"
+#define DATABASE_URL "https://smart-med-con-default-rtdb.asia-southeast1.firebasedatabase.app/"
+FirebaseData fbdo;
+FirebaseJson json;
+FirebaseAuth auth;
+FirebaseConfig config;
+
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
@@ -25,7 +41,7 @@ int alarms;
 bool sw = 0;
 int ldrVal;
 
-struct tm alarmTime[20];
+struct tm alarmTime[50];
 struct tm timeNow;
 struct tm timeOut;
 
@@ -41,36 +57,26 @@ void getTime(){
 }
 
 void getTimeSet(){
-  HTTPClient http;
-  String serverPath = serverName + "/timeSet.txt";
-  http.begin(serverPath.c_str());
-  int httpResponseCode = http.GET();
-  if (httpResponseCode>0) {
-    String cod = http.getString();
-    char *str = new char[cod.length() + 1];
-    strcpy(str, cod.c_str());
-    int arr[5];
-    char *p = strtok(str, ",");
-    size_t index = 0;
-    int arrSize = atoi(p);
-    p = strtok(NULL, ",");
-    while (p != nullptr && index < arrSize) {
-      arr[index++] = atoi(p);
-      p = strtok(NULL, ",");
+  if(Firebase.ready()){
+    Firebase.RTDB.getJSON(&fbdo, "/alarms");
+    json = fbdo.to<FirebaseJson>();
+    size_t len = json.iteratorBegin();
+    int hour, minute;
+    alarms = 0;
+    for(size_t i = 0;i < len;i++){
+      FirebaseJson::IteratorValue value = json.valueAt(i);
+      if(String(value.key.c_str()) == "hour") hour = atoi(value.value.c_str());
+      if(String(value.key.c_str()) == "minute") {
+        minute = atoi(value.value.c_str());
+        //Serial.println(hour);
+        //Serial.println(minute);
+        alarmTime[alarms].tm_hour = hour;
+        alarmTime[alarms++].tm_min = minute;
+      }
     }
-
-    alarms = arrSize/2;
-    for(int i = 0;i < alarms;i++){
-      alarmTime[i].tm_hour = arr[2*i];
-      alarmTime[i].tm_min = arr[2*i+1];
-    }
+    json.iteratorEnd();
   }
-  else {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
-  }
-
-  http.end();
+  else Serial.println("Firebase not ready");
 }
 
 void notifyStatus(int sta){
@@ -120,11 +126,22 @@ void setup() {
   Serial.println(WiFi.localIP());
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   LINE.setToken(LINE_TOKEN);
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+  if (Firebase.signUp(&config, &auth, "", "")){
+    Serial.println("Firebase OK");
+  }
+  else{
+    Serial.printf("%s\n", config.signer.signupError.message.c_str());
+  }
+  config.token_status_callback = tokenStatusCallback;
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
   
   getTime();
   getTimeSet();
-  Serial.println(alarmTime[0].tm_hour);
-  Serial.println(alarmTime[0].tm_min);
   Serial.println(timeNow.tm_hour);
   Serial.println(timeNow.tm_min);
   
@@ -149,9 +166,10 @@ void setup() {
 }
 
 void Task1code( void * pvParameters ){
-  Serial.print("Task1 running on core ");
-  Serial.println(xPortGetCoreID());
-  Serial.println(status);
+  Serial.println("Task1 running");
+  //Serial.println(xPortGetCoreID());
+  //Serial.println(status);
+  delay(50);
   
   for(;;){
     getTime();
@@ -182,13 +200,13 @@ void Task1code( void * pvParameters ){
 }
 
 void Task2code( void * pvParameters ){
-  Serial.print("Task2 running on core ");
-  Serial.println(xPortGetCoreID());
-  Serial.println(status);
+  Serial.println("Task2 running");
+  //Serial.println(xPortGetCoreID());
+  //Serial.println(status);
 
   for(;;){
     if(status == 1){
-      Serial.println("eatttttt");
+      //Serial.println("eatttttt");
       notifyStatus(1);
       eat = false;
       while(eat == false){
@@ -201,9 +219,9 @@ void Task2code( void * pvParameters ){
           delay(100);
         }
         Serial.print("timeOut ");
-        Serial.print(timeOut.tm_min);
+        Serial.print(timeOut.tm_hour);
         Serial.print(" ");
-        Serial.println(timeOut.tm_hour);
+        Serial.println(timeOut.tm_min);
         if(timeNow.tm_min == timeOut.tm_min && timeNow.tm_hour == timeOut.tm_hour && status != 2){
           status = 2;
           notifyStatus(2);
