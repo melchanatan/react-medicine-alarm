@@ -20,7 +20,7 @@ function Clock(props) {
           <TimePicker maxValue={24} increment={1} passValue={passValue} id="hour" key="hour" />
           <span className="clock-colon">:</span>
           <TimePicker maxValue={60} increment={5} passValue={passValue} id="minute" key="minute" />
-          <button className="clock__set-alarm" onClick={setAlarm}><i class="fal fa-alarm-plus"></i></button>
+          <button className="clock__set-alarm" onClick={setAlarm}><i className="fal fa-alarm-plus"></i></button>
       </div>
     </div>
   );
